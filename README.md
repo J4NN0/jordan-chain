@@ -4,12 +4,12 @@ Giordano chain is on its own way.
 
 # Table of Contents
 
-- Ethereum Client
-- Accounts
-  - Accounts Balances
-  - Wallets
-  - Keystores
-  - Address Check
+- [Ethereum Client](https://github.com/J4NN0/jordan-chain#ethereum-client)
+- [Accounts](https://github.com/J4NN0/jordan-chain#accounts)
+  - [Accounts Balances](https://github.com/J4NN0/jordan-chain#accounts-balances)
+  - [Wallets](https://github.com/J4NN0/jordan-chain#wallets)
+  - [Keystores](https://github.com/J4NN0/jordan-chain#keystores)
+  - [Address Check](https://github.com/J4NN0/jordan-chain#address-check)
 
 # Ethereum Client
 

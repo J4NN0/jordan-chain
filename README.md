@@ -1,28 +1,34 @@
 # Jordan Chain
 
-Giordano chain is on its own way.
+Giordano chain is on its way.
 
 # Table of Contents
 
-- [Ethereum Client](https://github.com/J4NN0/jordan-chain#ethereum-client)
-- [Accounts](https://github.com/J4NN0/jordan-chain#accounts)
-  - [Accounts Balances](https://github.com/J4NN0/jordan-chain#accounts-balances)
-  - [Wallets](https://github.com/J4NN0/jordan-chain#wallets)
-  - [Keystores](https://github.com/J4NN0/jordan-chain#keystores)
-  - [Address Check](https://github.com/J4NN0/jordan-chain#address-check)
+- [Ethereum Client](#ethereum-client)
+- [Accounts](#accounts)
+  - [Accounts Balances](#accounts-balances)
+  - [Wallets](#wallets)
+  - [Keystores](#keystores)
+  - [Address Check](#address-check)
+- [Transactions](#transactions)
+  - [Querying Blocks](#querying-blocks)
+  - [Querying Transactions](#querying-transactions)
+  - [Transferring ETH](#transferring-eth)
 
 # Ethereum Client
 
 Setting up the [Ethereum](https://ethereum.org/en/) client in Go is a fundamental step required for interacting with the blockchain. First import the `ethclient` [go-ethereum](https://pkg.go.dev/github.com/ethereum/go-ethereum) package and initialize it.
 
-It is possible to connect to [infura](https://www.infura.io), which manages a bunch of Ethereum (geth and parity) nodes that are secure and reliable:
+It is possible to connect to [Infura](https://www.infura.io), which manages a bunch of Ethereum (geth and parity) nodes that are secure and reliable. To get your `INFURA_API_KEY`, you need to sign up for an account, create a new project and then get your API key from there. 
 
 ```go
 import (
     "github.com/ethereum/go-ethereum/ethclient"
 )
 
-ethClient, err := ethclient.Dial("https://mainnet.infura.io")
+func main() {
+    ethClient, err := ethclient.Dial("https://mainnet.infura.io/v3/INFURA_API_KEY")	
+}
 ```
 
 # Accounts
@@ -38,8 +44,10 @@ import (
     "github.com/ethereum/go-ethereum/common"
 )
 
-accountAddr := common.HexToAddress("0x71c7656ec7ab88b098defb751b7401b5f6d8976f")
-fmt.Println(accountAddr.Hex()) // 0x71C7656EC7ab88b098defB751B7401B5f6d8976F
+func main() {
+    accountAddr := common.HexToAddress("0x71c7656ec7ab88b098defb751b7401b5f6d8976f")
+    fmt.Println(accountAddr.Hex()) // 0x71C7656EC7ab88b098defB751B7401B5f6d8976F
+}
 ```
 
 ### Accounts Balances
@@ -57,17 +65,19 @@ import (
     "math/big"
 )
 
-blockNumber := big.NewInt(5532993)
-balanceAt, err := ethClient.BalanceAt(context.Background(), accountAddr, blockNumber)
-if err != nil {
-    log.Fatal(err)
+func main() {
+    blockNumber := big.NewInt(5532993)
+    balanceAt, err := ethClient.BalanceAt(context.Background(), accountAddr, blockNumber)
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println(balanceAt) // 25729324269165216042
+    
+    fbalance := new(big.Float)
+    fbalance.SetString(balanceAt.String())
+    ethValue := new(big.Float).Quo(fbalance, big.NewFloat(math.Pow10(18)))
+    fmt.Println(ethValue) // 25.729324269165216041
 }
-fmt.Println(balanceAt) // 25729324269165216042
-
-fbalance := new(big.Float)
-fbalance.SetString(balanceAt.String())
-ethValue := new(big.Float).Quo(fbalance, big.NewFloat(math.Pow10(18)))
-fmt.Println(ethValue) // 25.729324269165216041
 ```
 
 ### Wallets
@@ -83,13 +93,16 @@ import (
     "github.com/ethereum/go-ethereum/common/hexutil"
 )
 
-privateKey, err := crypto.GenerateKey()
-if err != nil {
-    log.Fatal(err)
+func main() {
+    privateKey, err := crypto.GenerateKey()
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    privateKeyBytes := crypto.FromECDSA(privateKey) // convert it to bytes
+    fmt.Println(hexutil.Encode(privateKeyBytes)[2:]) // convert it to a hexadecimal string and strip the 0x after it's hex encoded
 }
 
-privateKeyBytes := crypto.FromECDSA(privateKey) // convert it to bytes
-fmt.Println(hexutil.Encode(privateKeyBytes)[2:]) // convert it to a hexadecimal string and strip the 0x after it's hex encoded
 ```
 
 **Public key** is derived from the private key.
@@ -103,15 +116,17 @@ import (
     "github.com/ethereum/go-ethereum/common/hexutil"
 )
 
-publicKey := privateKey.Public()
-
-publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-if !ok {
-    log.Fatal("error casting public key to ECDSA")
+func main() {
+    publicKey := privateKey.Public()
+    
+    publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+    if !ok {
+        log.Fatal("error casting public key to ECDSA")
+    }
+    
+    publicKeyBytes := crypto.FromECDSAPub(publicKeyECDSA) // convert it to bytes
+    fmt.Println(hexutil.Encode(publicKeyBytes)[4:]) // convert it to a hexadecimal string and strip the 0x and the first 2 characters (i.e. 04) which is always the EC prefix and is not required
 }
-
-publicKeyBytes := crypto.FromECDSAPub(publicKeyECDSA) // convert it to bytes
-fmt.Println(hexutil.Encode(publicKeyBytes)[4:]) // convert it to a hexadecimal string and strip the 0x and the first 2 characters (i.e. 04) which is always the EC prefix and is not required
 ```
 
 ECDSA sample of hex private and public keys:
@@ -132,13 +147,15 @@ import (
     "fmt"
 )
 
-address := crypto.PubkeyToAddress(*publicKeyECDSA).Hex()
-fmt.Println(address)
+func main() {
+    address := crypto.PubkeyToAddress(*publicKeyECDSA).Hex()
+    fmt.Println(address)
+}
 ```
 
 ### Keystores
 
-A keystore is an encrypted file containing a wallet private key. 
+A keystore is an encrypted file containing a wallet private key, and they can only contain one wallet key pair per file.
 
 ```go
 import (
@@ -148,14 +165,16 @@ import (
     "github.com/ethereum/go-ethereum/accounts/keystore"
 )
 
-ks := keystore.NewKeyStore("./wallets", keystore.StandardScryptN, keystore.StandardScryptP)
-password := "secret"
-account, err := ks.NewAccount(password) // new wallet
-if err != nil {
-    log.Fatal(err)
+func main() {
+    ks := keystore.NewKeyStore("./wallets", keystore.StandardScryptN, keystore.StandardScryptP)
+    password := "secret"
+    account, err := ks.NewAccount(password) // new wallet
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    fmt.Println(account.Address.Hex()) // 0x20F8D42FB0F667F2E53930fed426f225752453b3
 }
-
-fmt.Println(account.Address.Hex()) // 0x20F8D42FB0F667F2E53930fed426f225752453b3
 ```
 
 And the file would look like this:
@@ -191,7 +210,7 @@ Where:
 - `kdfparams`: The parameters required for the “kdf” algorithm above;
 - `mac`: A code used to verify your password;
 
-# Address Check
+### Address Check
 
 We can check if an address is valid by using regex.
 
@@ -214,13 +233,110 @@ import (
     "github.com/ethereum/go-ethereum/ethclient"
 )
 
-address := common.HexToAddress("ETH_ADDRESS") // 0x Protocol Token (ZRX) smart contract address
-bytecode, err := ethClient.CodeAt(context.Background(), address, nil) // nil is the latest block
+func main() {
+    address := common.HexToAddress("ETH_ADDRESS") // 0x Protocol Token (ZRX) smart contract address
+    bytecode, err := ethClient.CodeAt(context.Background(), address, nil) // nil is the latest block
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    isSmartContract := len(bytecode) > 0
+    
+    fmt.Printf("is contract: %v\n", isSmartContract)
+}
+```
+
+# Transactions
+
+This section will discuss how to make transactions on Ethereum.
+
+### Querying Blocks
+
+We can get header information about a block.
+
+```go
+header, err := client.HeaderByNumber(context.Background(), nil)
+if err != nil {
+	log.Fatal(err)
+}
+
+fmt.Println(header.Number.String()) // 5671744
+```
+
+Or get the full block and read all the contents and metadata of the block such as block number, block timestamp, block hash, block difficulty, as well as the list of transactions and much more.
+
+```go
+blockNumber := big.NewInt(5671744)
+block, err := client.BlockByNumber(context.Background(), blockNumber)
+if err != nil {
+	log.Fatal(err)
+}
+
+fmt.Println(block.Number().Uint64())     // 5671744
+fmt.Println(block.Time().Uint64())       // 1527211625
+fmt.Println(block.Difficulty().Uint64()) // 3217000136609065
+fmt.Println(block.Hash().Hex())          // 0x9e8751ebb5069389b855bba72d94902cc385042661498a415979b7b6ee9ba4b9
+fmt.Println(len(block.Transactions()))   // 144
+```
+
+### Querying Transactions
+
+We can iterate over the transactions in a block and retrieve any information regarding the transaction.
+
+```go
+for _, tx := range block.Transactions() {
+	fmt.Println(tx.Hash().Hex())        // 0x5d49fcaa394c97ec8a9c3e7bd9e8388d420fb050a52083ca52ff24b3b65bc9c2
+	fmt.Println(tx.Value().String())    // 10000000000000000
+	fmt.Println(tx.Gas())               // 105000
+	fmt.Println(tx.GasPrice().Uint64()) // 102000000000
+	fmt.Println(tx.Nonce())             // 110644
+	fmt.Println(tx.Data())              // []
+	fmt.Println(tx.To().Hex())          // 0x55fE59D8Ad77035154dDd0AD0388D09Dd4047A8e
+}
+```
+
+It also possible to read the sender address.
+
+```go
+chainID, err := client.NetworkID(context.Background())
+if err != nil {
+	log.Fatal(err)
+}
+
+if msg, err := tx.AsMessage(types.NewEIP155Signer(chainID)); err != nil {
+	fmt.Println(msg.From().Hex()) // 0x0fD081e3Bb178dc45c0cb23202069ddA57064258
+}
+```
+
+### Transferring ETH
+
+A transaction consists of the amount of ether you're transferring, the gas limit, the gas price, a nonce, the receiving address, and optionally data. The transaction must be signed with the private key of the sender before it's broadcasted to the network.
+
+To perform the transaction we need our private key and a nonce. A nonce by definition is a number that is only used once. If it's a new account sending out a transaction then the nonce will be `0`. Every new transaction from an account must have a nonce that the previous nonce incremented by `1`.
+
+The next step is to set the amount of ETH that we'll be transferring (in wei), gas fees, generate and sing the transaction.
+
+```go
+nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+if err != nil {
+	log.Fatal(err)
+}
+
+gasPrice, err := client.SuggestGasPrice(context.Background())
+if err != nil {
+	log.Fatal(err)
+}
+
+tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, nil)
+
+chainID, err := client.NetworkID(context.Background())
 if err != nil {
     log.Fatal(err)
 }
 
-isSmartContract := len(bytecode) > 0
-
-fmt.Printf("is contract: %v\n", isSmartContract)
+signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+if err != nil {
+    log.Fatal(err)
+}
 ```
+

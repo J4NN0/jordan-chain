@@ -255,28 +255,32 @@ This section will discuss how to make transactions on Ethereum.
 We can get header information about a block.
 
 ```go
-header, err := client.HeaderByNumber(context.Background(), nil)
-if err != nil {
-	log.Fatal(err)
+func main() {
+    header, err := client.HeaderByNumber(context.Background(), nil)
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    fmt.Println(header.Number.String()) // 5671744	
 }
-
-fmt.Println(header.Number.String()) // 5671744
 ```
 
 Or get the full block and read all the contents and metadata of the block such as block number, block timestamp, block hash, block difficulty, as well as the list of transactions and much more.
 
 ```go
-blockNumber := big.NewInt(5671744)
-block, err := client.BlockByNumber(context.Background(), blockNumber)
-if err != nil {
-	log.Fatal(err)
+func main() {
+    blockNumber := big.NewInt(5671744)
+    block, err := client.BlockByNumber(context.Background(), blockNumber)
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    fmt.Println(block.Number().Uint64()) // 5671744
+    fmt.Println(block.Time().Uint64())       // 1527211625
+    fmt.Println(block.Difficulty().Uint64()) // 3217000136609065
+    fmt.Println(block.Hash().Hex())          // 0x9e8751ebb5069389b855bba72d94902cc385042661498a415979b7b6ee9ba4b9
+    fmt.Println(len(block.Transactions())) // 144
 }
-
-fmt.Println(block.Number().Uint64())     // 5671744
-fmt.Println(block.Time().Uint64())       // 1527211625
-fmt.Println(block.Difficulty().Uint64()) // 3217000136609065
-fmt.Println(block.Hash().Hex())          // 0x9e8751ebb5069389b855bba72d94902cc385042661498a415979b7b6ee9ba4b9
-fmt.Println(len(block.Transactions()))   // 144
 ```
 
 ### Querying Transactions
@@ -284,27 +288,30 @@ fmt.Println(len(block.Transactions()))   // 144
 We can iterate over the transactions in a block and retrieve any information regarding the transaction.
 
 ```go
-for _, tx := range block.Transactions() {
-	fmt.Println(tx.Hash().Hex())        // 0x5d49fcaa394c97ec8a9c3e7bd9e8388d420fb050a52083ca52ff24b3b65bc9c2
-	fmt.Println(tx.Value().String())    // 10000000000000000
-	fmt.Println(tx.Gas())               // 105000
-	fmt.Println(tx.GasPrice().Uint64()) // 102000000000
-	fmt.Println(tx.Nonce())             // 110644
-	fmt.Println(tx.Data())              // []
-	fmt.Println(tx.To().Hex())          // 0x55fE59D8Ad77035154dDd0AD0388D09Dd4047A8e
+func main() {
+    for _, tx := range block.Transactions() {
+        fmt.Println(tx.Hash().Hex())        // 0x5d49fcaa394c97ec8a9c3e7bd9e8388d420fb050a52083ca52ff24b3b65bc9c2
+        fmt.Println(tx.Value().String())    // 10000000000000000
+        fmt.Println(tx.Gas())               // 105000
+        fmt.Println(tx.GasPrice().Uint64()) // 102000000000
+        fmt.Println(tx.Nonce())             // 110644
+        fmt.Println(tx.Data())              // []
+        fmt.Println(tx.To().Hex())          // 0x55fE59D8Ad77035154dDd0AD0388D09Dd4047A8e
+    }	
 }
 ```
 
 It also possible to read the sender address.
 
 ```go
-chainID, err := client.NetworkID(context.Background())
-if err != nil {
-	log.Fatal(err)
-}
-
-if msg, err := tx.AsMessage(types.NewEIP155Signer(chainID)); err != nil {
-	fmt.Println(msg.From().Hex()) // 0x0fD081e3Bb178dc45c0cb23202069ddA57064258
+func main() {
+    chainID, err := client.NetworkID(context.Background())
+    if err != nil {
+        log.Fatal(err)
+    }
+    if msg, err := tx.AsMessage(types.NewEIP155Signer(chainID)); err != nil {
+        fmt.Println(msg.From().Hex()) // 0x0fD081e3Bb178dc45c0cb23202069ddA57064258
+    }
 }
 ```
 
@@ -317,26 +324,27 @@ To perform the transaction we need our private key and a nonce. A nonce by defin
 The next step is to set the amount of ETH that we'll be transferring (in wei), gas fees, generate and sing the transaction.
 
 ```go
-nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
-if err != nil {
-	log.Fatal(err)
-}
-
-gasPrice, err := client.SuggestGasPrice(context.Background())
-if err != nil {
-	log.Fatal(err)
-}
-
-tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, nil)
-
-chainID, err := client.NetworkID(context.Background())
-if err != nil {
-    log.Fatal(err)
-}
-
-signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
-if err != nil {
-    log.Fatal(err)
+func main() {
+    nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+    if err != nil {
+    	log.Fatal(err)
+    }
+    
+    gasPrice, err := client.SuggestGasPrice(context.Background())
+    if err != nil {
+    	log.Fatal(err)
+    }
+    
+    tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, nil)
+    
+    chainID, err := client.NetworkID(context.Background())
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+    if err != nil {
+        log.Fatal(err)
+    }
 }
 ```
-

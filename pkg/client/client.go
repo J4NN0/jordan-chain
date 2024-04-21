@@ -59,12 +59,12 @@ func (c *ChainClient) BlockByNumber(ctx context.Context, blockNumber int64) (*ty
 
 // SendTransactionByKS transfer ETH from an account to another using keystore
 func (c *ChainClient) SendTransactionByKS(ctx context.Context, wallet wallet.Wallet, to common.Address, amount *big.Int) (string, error) {
-	tx, err := c.generateTransaction(ctx, wallet.Account.Address, to, amount)
+	tx, chainID, err := c.generateTransaction(ctx, wallet.Account.Address, to, amount)
 	if err != nil {
 		return "", fmt.Errorf("failed to generation transaction: %v", err)
 	}
 
-	signedTx, err := wallet.SignTx(wallet.Account, tx, tx.ChainId())
+	signedTx, err := wallet.SignTx(wallet.Account, tx, chainID)
 	if err != nil {
 		return "", fmt.Errorf("failed to sign transaction: %v", err)
 	}
@@ -79,12 +79,12 @@ func (c *ChainClient) SendTransactionByKS(ctx context.Context, wallet wallet.Wal
 
 // SendTransactionByPrivateKey transfer ETH from an account to another using private key
 func (c *ChainClient) SendTransactionByPrivateKey(ctx context.Context, privateKey *ecdsa.PrivateKey, from, to common.Address, amount *big.Int) (string, error) {
-	tx, err := c.generateTransaction(ctx, from, to, amount)
+	tx, chainID, err := c.generateTransaction(ctx, from, to, amount)
 	if err != nil {
 		return "", fmt.Errorf("failed to generation transaction data: %v", err)
 	}
 
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tx.ChainId()), privateKey)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to sign transaction: %v", err)
 	}
@@ -97,38 +97,32 @@ func (c *ChainClient) SendTransactionByPrivateKey(ctx context.Context, privateKe
 	return signedTx.Hash().Hex(), nil
 }
 
-func (c *ChainClient) generateTransaction(ctx context.Context, from, to common.Address, amount *big.Int) (*types.Transaction, error) {
+func (c *ChainClient) generateTransaction(ctx context.Context, from, to common.Address, amount *big.Int) (*types.Transaction, *big.Int, error) {
 	nonce, err := c.ethClient.PendingNonceAt(ctx, from)
 	if err != nil {
-		return &types.Transaction{}, fmt.Errorf("failed to get nonce: %v", err)
+		return &types.Transaction{}, &big.Int{}, fmt.Errorf("failed to get nonce: %v", err)
 	}
 
 	gasPrice, err := c.ethClient.SuggestGasPrice(ctx)
 	if err != nil {
-		return &types.Transaction{}, fmt.Errorf("failed to suggest gas price: %v", err)
-	}
-	gasTip, err := c.ethClient.SuggestGasTipCap(ctx)
-	if err != nil {
-		return &types.Transaction{}, fmt.Errorf("failed to suggest gas tip: %v", err)
+		return &types.Transaction{}, &big.Int{}, fmt.Errorf("failed to suggest gas price: %v", err)
 	}
 	gasLimit := uint64(21000) // standard gas limit in units for a simple transfer
 
 	chainID, err := c.ethClient.NetworkID(ctx)
 	if err != nil {
-		return &types.Transaction{}, fmt.Errorf("failed to get networkID: %s", err)
+		return &types.Transaction{}, &big.Int{}, fmt.Errorf("failed to get networkID: %s", err)
 	}
 
 	var data []byte
-	tx := types.NewTx(&types.DynamicFeeTx{
-		ChainID:   chainID,
-		Nonce:     nonce,
-		GasFeeCap: gasPrice,
-		GasTipCap: gasTip,
-		Gas:       gasLimit,
-		To:        &to,
-		Value:     amount,
-		Data:      data,
+	tx := types.NewTx(&types.LegacyTx{
+		Nonce:    nonce,
+		GasPrice: gasPrice,
+		Gas:      gasLimit,
+		To:       &to,
+		Value:    amount,
+		Data:     data,
 	})
 
-	return tx, nil
+	return tx, chainID, nil
 }

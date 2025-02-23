@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	infuraAPIKey = "8c6f399c2a164f6aba897060a16e72d1"
+	infuraAPIKey = "INFURA_API_KEY"
 	walletSecret = "password"
 )
 
